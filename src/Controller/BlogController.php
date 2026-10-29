@@ -174,4 +174,5 @@ final class BlogController extends AbstractController
 
         return 0;
     }
+    
 }
