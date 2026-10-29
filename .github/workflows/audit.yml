@@ -2,7 +2,7 @@ name: Audit du code
 on:
   push:
     branches: 
-    -main
+    - main
     - develop
   pull_request:
     branches:
@@ -21,7 +21,7 @@ jobs:
             - name: Installer PHP
               uses: shivammathur/setup-php@v2
               with:
-                phpversion: '8.5'
+                php-version: '8.5'
                 extensions: mbstring, intl
 
             - name: Mise en cache du Composer
