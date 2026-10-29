@@ -11,7 +11,7 @@ on:
 jobs:
     audit:
         runs-on: ubuntu-latest
-        steps:
+        steps: 
             - name: Récupérer le dépôt
               uses: actions/checkout@v7
             - name: Récupérer le cache Composer
