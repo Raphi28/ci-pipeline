@@ -124,8 +124,9 @@ jobs:
               run: composer install --no-progress --no-interaction --prefer-dist
 
             - name: Créer la base de données
-              run: php bin/console doctrine:database:create --no-interaction --if-not-exists
-                   php bin/console doctrine:schema:create --no-interaction
+              run: 
+                php bin/console doctrine:database:create --no-interaction --if-not-exists
+                php bin/console doctrine:schema:create --no-interaction
 
             - name: Charger les fixtures
               run: php bin/console doctrine:fixtures:load --no-interaction
