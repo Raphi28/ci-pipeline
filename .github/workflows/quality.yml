@@ -168,9 +168,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-              if [ -d ~/app/.git]; then
+              if [ -d ~/mauduitapp/.git]; then
                   cd ~/mauduitapp
                   git pull
               else
-                  git clone ${{github.server_url}}/${{github.repository}} ~/app
+                  git clone ${{github.server_url}}/${{github.repository}} ~/mauduitapp
               fi
