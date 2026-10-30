@@ -46,16 +46,16 @@ jobs:
         run: vendor/bin/phpstan analyse -c phpstan.dist.neon --no-progress
 
       - name: Linter Twig
-        run: bin/console lint:twig templates/
+        run: phpbin/console lint:twig templates/
       
       - name: Linter YAML
-        run: bin/console lint:yaml config/
+        run: php bin/console lint:yaml config/
 
       - name: Linter les containers de services
-        run: bin/console lint:container --no-debug
+        run: php bin/console lint:container --no-debug
 
       - name: Verification des entités Doctrine
-        run: bin/console doctrine:schema:validate --skip-sync -vvv --no-interaction
+        run: php bin/console doctrine:schema:validate --skip-sync -vvv --no-interaction
   test:
       runs-on: ubuntu-latest
       needs: quality
@@ -151,4 +151,3 @@ jobs:
             context: .
             push: true
             tags: ${{ secrets.DOCKERHUB_USERNAME }}/sym-demo-ci-b3:latest
-            
