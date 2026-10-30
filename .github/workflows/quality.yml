@@ -46,7 +46,7 @@ jobs:
         run: vendor/bin/phpstan analyse -c phpstan.dist.neon --no-progress
 
       - name: Linter Twig
-        run: phpbin/console lint:twig templates/
+        run: php bin/console lint:twig templates/
       
       - name: Linter YAML
         run: php bin/console lint:yaml config/
