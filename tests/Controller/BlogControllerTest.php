@@ -47,7 +47,7 @@ final class BlogControllerTest extends WebTestCase
 
         $this->assertResponseHeaderSame('Content-Type', 'text/xml; charset=UTF-8');
 
-        $this->assertCount(
+        $this->assertCount( 
             Paginator::PAGE_SIZE,
             $crawler->filter('item'),
             'The xml file displays the right number of posts.'
