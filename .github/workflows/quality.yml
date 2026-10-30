@@ -172,3 +172,4 @@ jobs:
                   git pull
               else
                   git clone ${{github.server_url}}/${{github.repository}} ~/app
+              fi
