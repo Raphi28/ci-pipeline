@@ -1,135 +1,134 @@
 name: Qualité du code
 on:
-    push:
-        branches:
-            - main
-            - develop
-    pull_request:
-        branches:
-            - develop
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - develop
 jobs:
-    quality:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Récupérer le dépôt
-              uses: actions/checkout@v7
-            - name: Récupérer le cache Composer
-              id: composer-cache
-              run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v7
 
-            - name: Installer PHP
-              uses: shivammathur/setup-php@v2
-              with:
-                php-version: '8.5'
-                extensions: mbstring, intl
+      - name: Set up Python
+        uses: actions/setup-python@v4
+      - name: Récupérer le cache composer
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      
+      - name: Installer PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, intl
 
-            - name: Mise en cache du Composer
-              uses: actions/cache@v6
-              with:
-                path: ${{ steps.composer-cache.outputs.dir }}
-                key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-                restore-keys: ${{ runner.os }}-composer-
+      - name: Mise en cache du composer
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
-            - name: Installer les dépendances Composer
-              run: composer install --no-progress --no-interaction --prefer-dist
+      - name: Installer les dépendances composer
+        run: composer install --no-progress --no-interaction --prefer-dist
+      
+      - name: Lancer l'audit de sécurité
+        run: composer audit
 
+      - name: Verification du style avec php cs-fixer
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+      
+      - name: Analyse statique avec phpstan
+        run: vendor/bin/phpstan analyse -c phpstan.dist.neon --no-progress
 
-            - name: Vérification du style avec php cs-fixer
-              run: vendor/bin/php-cs-fixer fix --dry-run --diff
+      - name: Linter Twig
+        run: bin/console lint:twig templates/
+      
+      - name: Linter YAML
+        run: bin/console lint:yaml config/
 
-            - name: Analyse statique avec PHPStan
-              run: vendor/bin/phpstan analyse -c phpstan.dist.neon --no-progress
+      - name: Linter les containers de services
+        run: bin/console lint:container --no-debug
 
-            - name: Linter Twig
-              run: bin/console lint:twig templates/
+      - name: Verification des entités Doctrine
+        run: bin/console doctrine:schema:validate --skip-sync -vvv --no-interaction
+  test:
+      runs-on: ubuntu-latest
+      needs: quality
+      steps: 
+          - name: Récupérer le dépôt
+            uses: actions/checkout@v7
+          - name: Récupérer le cache Composer
+            id: composer-cache
+            run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+            
+          - name: Installer PHP
+            uses: shivammathur/setup-php@v2
+            with:
+              php-version: '8.4'
+              extensions: mbstring, intl
 
-            - name: Linter YAML
-              run: bin/console lint:yaml config/
+          - name: Mise en cache du Composer
+            uses: actions/cache@v6
+            with:
+              path: ${{ steps.composer-cache.outputs.dir }}
+              key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+              restore-keys: ${{ runner.os }}-composer-
 
-            - name: Linter les containers de services
-              run: bin/console lint:container --no-debug
-            - name: Vérification des entités Doctrine
-              run: bin/console doctrine:schema:validate --skip-sync -vvv --no-interaction
+          - name: Installer les dépendances Composer
+            run: composer install --no-progress --no-interaction
 
-    test:
-        needs: quality
-        runs-on: ubuntu-latest
-        steps:
-            - name: Récupérer le dépôt
-              uses: actions/checkout@v7
-            - name: Récupérer le cache Composer
-              id: composer-cache
-              run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+          - name: Exécuter les tests PHPUnit
+            run: php bin/phpunit --log-junit php-report.xml
 
-            - name: Installer PHP
-              uses: shivammathur/setup-php@v2
-              with:
-                php-version: '8.5'
-                extensions: mbstring, intl
+  test-integration:
+      needs: test
+      runs-on: ubuntu-latest
+      services:
+        mysql:
+          image: mysql:8.0
+          env:
+            MYSQL_ROOT_PASSWORD: testpass
+            MYSQL_DATABASE: testdb_test
+          ports:
+            - 3306:3306
+          options: >-
+            --health-cmd="mysqladmin ping --silent"
+            --health-interval=10s
+            --health-timeout=5s
+            --health-retries=3
+      env:
+        DATABASE_URL: mysql://root:testpass@127.0.0.1:3306/testdb
+        APP_ENV: test
+      steps:
+        - name: Récupérer le dépôt
+          uses: actions/checkout@v7
+        - name: Récupérer le cache Composer
+          id: composer-cache
+          run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+        - name: Installer PHP
+          uses: shivammathur/setup-php@v2
+          with:
+              php-version: '8.5'
+              extensions: mbstring, intl
+        - name: Mise en cache
+          uses: actions/cache@v6
+          with:
+            path: ${{ steps.composer-cache.outputs.dir }}
+            key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+            restore-keys: ${{ runner.os }}-composer-
+        - name: Installer les dépendances Composer
+          run: composer install --no-progress --no-interaction --prefer-dist
+        - name: Créer la base de données
+          run: |
+            php bin/console doctrine:database:create --no-interaction --if-not-exists
+            php bin/console doctrine:schema:create --no-interaction
+        - name: Charger les fixtures
+          run: php bin/console doctrine:fixtures:load --no-interaction
 
-            - name: Mise en cache du Composer
-              uses: actions/cache@v6
-              with:
-                path: ${{ steps.composer-cache.outputs.dir }}
-                key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-                restore-keys: ${{ runner.os }}-composer-
-
-            - name: Installer les dépendances Composer
-              run: composer install --no-progress --no-interaction --prefer-dist
-
-
-            - name: Exécuter les tests PHPUnit
-              run: php bin/phpunit --log-junit phpunit-report.xml
-
-    test-integration:
-        needs: test
-        runs-on: ubuntu-latest
-        services:
-          mysql:
-              image: mysql:8.0
-              env:
-                MYSQL_ROOT_PASSWORD: testpass
-                MYSQL_DATABASE: testdb_test
-              ports:
-                - 3306:3306
-              options: >-
-                --health-cmd="mysqladmin ping --silent"
-                --health-interval=10s
-                --health-timeout=5s
-                --health-retries=3
-        env:
-            DATABASE_URL: mysql://root:testpass@127.0.0.1:3306/testdb
-            APP_ENV: test
-        steps:
-            - name: Récupérer le dépôt
-              uses: actions/checkout@v7
-            - name: Récupérer le cache Composer
-              id: composer-cache
-              run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-            - name: Installer PHP
-              uses: shivammathur/setup-php@v2
-              with:
-                php-version: '8.5'
-                extensions: mbstring, intl
-
-            - name: Mise en cache du Composer
-              uses: actions/cache@v6
-              with:
-                path: ${{ steps.composer-cache.outputs.dir }}
-                key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-                restore-keys: ${{ runner.os }}-composer-
-
-            - name: Installer les dépendances Composer
-              run: composer install --no-progress --no-interaction --prefer-dist
-
-            - name: Créer la base de données
-              run: 
-                php bin/console doctrine:database:create --no-interaction --if-not-exists
-                php bin/console doctrine:schema:create --no-interaction
-
-            - name: Charger les fixtures
-              run: php bin/console doctrine:fixtures:load --no-interaction
-
-            - name: Exécuter les tests d'intégration
-              run: php bin/phpunit
+        - name: Exécuter les tests d'intégration
+          run: php bin/phpunit
