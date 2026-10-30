@@ -134,7 +134,7 @@ jobs:
           run: php bin/phpunit
 
   build-push:
-      needs: test-integration
+      needs: [test-integration]
       runs-on: ubuntu-latest
       steps:
         - name: Récupérer le dépôt
@@ -153,6 +153,7 @@ jobs:
             tags: ${{ secrets.DOCKERHUB_USERNAME }}/sym-demo-ci-b3:latest
 
   deploy:
+    needs: [test-integration]
     runs-on: ubuntu-latest
     continue-on-error: false
     steps:
