@@ -167,4 +167,4 @@ jobs:
           password: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-              mkdir -p testapp
+              mkdir -p mauduit-testapp
