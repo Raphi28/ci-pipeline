@@ -169,7 +169,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
               if [ -d ~/app/.git]; then
-                  cd ~/app
+                  cd ~/mauduitapp
                   git pull
               else
                   git clone ${{github.server_url}}/${{github.repository}} ~/app
