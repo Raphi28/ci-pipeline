@@ -53,4 +53,4 @@ final class BlogControllerTest extends WebTestCase
             'The xml file displays the right number of posts.'
         );
     }
-}
+} 
