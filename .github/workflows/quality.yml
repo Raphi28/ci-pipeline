@@ -86,7 +86,7 @@ jobs:
             run: php bin/phpunit --log-junit php-report.xml
 
   test-integration:
-      needs: test
+      needs: [quality, test]
       runs-on: ubuntu-latest
       services:
         mysql:
